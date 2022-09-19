@@ -5,14 +5,14 @@ import (
 	"strconv"
 )
 
-func DoValidations[T interface{}]() map[string]func(T, reflect.StructField, int) (bool, bool) {
+func doValidations[T interface{}]() map[string]func(T, reflect.StructField, int) (bool, bool) {
 	return map[string]func(T, reflect.StructField, int) (bool, bool){
 		reflect.String.String(): func(object T, field reflect.StructField, i int) (isValidationPresent bool, isValidated bool) {
 			isValidated = true
 			isValidationPresent = false
 			if field.Tag.Get("required") == "true" {
 				isValidated = reflect.ValueOf(&object).Elem().Field(i).String() != ""
-				isValidationPresent = false
+				isValidationPresent = true
 			}
 			return
 		},
@@ -37,8 +37,11 @@ func IsValid[T interface{}](data T) bool {
 
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
-		doValidation := DoValidations[T]()[field.Type.Kind().String()]
-		if isValidationPresent, isValidated := doValidation(data, field, i); isValidationPresent {
+		doValidation := doValidations[T]()[field.Type.Kind().String()]
+		/**
+		if isValidated is false then return isValidated, otherwise continue validation
+		*/
+		if isValidationPresent, isValidated := doValidation(data, field, i); isValidationPresent && !isValidated {
 			return isValidated
 		}
 	}
